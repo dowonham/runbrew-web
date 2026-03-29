@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RUN:BREW — 드립백 선호도 수집</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .phone-wrap {
+      display: flex; justify-content: center;
+      padding: 2rem; background: #eeece6;
+      border-radius: 16px; width: 100%; max-width: 380px;
+    }
+    .phone {
+      width: 300px; background: #fff;
+      border-radius: 32px; border: 1px solid #d0cec8; overflow: hidden;
+    }
+    .sb {
+      height: 44px; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 20px;
+      border-bottom: 0.5px solid #e8e6e0;
+    }
+    .sb span { font-size: 12px; color: #888; font-weight: 500; }
+    .screen { padding: 24px 16px 28px; min-height: 480px; display: flex; flex-direction: column; }
+
+    .step-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 28px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #d0cec8; transition: all .3s; }
+    .dot.active { background: #D85A30; width: 18px; border-radius: 3px; }
+
+    .step { display: none; flex-direction: column; flex: 1; }
+    .step.active { display: flex; }
+
+    .step-label { font-size: 11px; color: #888; margin-bottom: 8px; }
+    .step-q { font-size: 17px; font-weight: 500; color: #1a1a1a; line-height: 1.4; margin-bottom: 6px; }
+    .step-sub { font-size: 12px; color: #888; margin-bottom: 24px; line-height: 1.5; }
+
+    .choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: auto; }
+    .choice-card {
+      border: 0.5px solid #d0cec8; border-radius: 8px;
+      padding: 14px 12px; cursor: pointer; transition: all .15s; background: #fff;
+    }
+    .choice-card:hover { background: #f5f5f0; }
+    .choice-card.selected { border-color: #D85A30; background: #FAECE7; }
+    .choice-card.selected .c-title { color: #712B13; }
+    .choice-card.selected .c-sub { color: #993C1D; }
+    .c-title { font-size: 13px; font-weight: 500; color: #1a1a1a; margin-bottom: 3px; }
+    .c-sub { font-size: 11px; color: #888; line-height: 1.4; }
+    .c-bar { height: 3px; border-radius: 2px; margin-top: 8px; background: #e8e6e0; overflow: hidden; }
+    .c-bar-fill { height: 100%; border-radius: 2px; background: #D85A30; transition: width .3s; }
+
+    .choice-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: auto; }
+    .choice-row {
+      border: 0.5px solid #d0cec8; border-radius: 8px;
+      padding: 12px 14px; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      transition: all .15s; background: #fff;
+    }
+    .choice-row:hover { background: #f5f5f0; }
+    .choice-row.selected { border-color: #D85A30; background: #FAECE7; }
+    .choice-row.selected .r-title { color: #712B13; }
+    .r-title { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+    .r-sub { font-size: 11px; color: #888; margin-top: 2px; }
+    .r-check {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1px solid #d0cec8; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; transition: all .15s;
+    }
+    .r-check.on { background: #D85A30; border-color: #D85A30; }
+    .r-check.on::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #FAECE7; }
+
+    .nav-row { display: flex; gap: 8px; margin-top: 20px; }
+    .btn-next {
+      flex: 1; padding: 13px; border-radius: 8px; border: none;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      background: #D85A30; color: #FAECE7; transition: all .15s;
+    }
+    .btn-next:disabled { background: #f0ede8; color: #888; cursor: default; }
+    .btn-next:not(:disabled):active { transform: scale(.98); }
+    .btn-back {
+      padding: 13px 16px; border-radius: 8px;
+      border: 0.5px solid #d0cec8; font-size: 14px; cursor: pointer;
+      background: transparent; color: #888; transition: all .15s;
+    }
+
+    .result-wrap { display: flex; flex-direction: column; flex: 1; }
+    .result-badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; margin-bottom: 12px; }
+    .result-title { font-size: 20px; font-weight: 500; margin-bottom: 4px; color: #1a1a1a; }
+    .result-sub { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+    .result-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+    .tag { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid #d0cec8; color: #888; }
+    .result-note {
+      font-size: 12px; color: #888; background: #f5f5f0;
+      border-radius: 8px; padding: 10px 12px; line-height: 1.6; margin-bottom: auto;
+    }
+    .btn-confirm {
+      width: 100%; padding: 13px; border-radius: 8px; border: none;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      margin-top: 20px; transition: all .15s;
+    }
+    .btn-confirm:active { transform: scale(.98); }
+  </style>
+</head>
+<body>
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="sb">
+      <span>9:41</span><span>RUN:BREW</span><span>●●●</span>
+    </div>
+    <div class="screen" id="screen">
+
+      <div class="step-dots" id="dots"></div>
+
+      <!-- Step 1 -->
+      <div class="step active" id="s1">
+        <div class="step-label">드립백 선택 · 1 / 3</div>
+        <div class="step-q">오늘 러닝, 어떤 느낌이었어요?</div>
+        <div class="step-sub">커피 타입을 자동으로 추천해드릴게요</div>
+        <div class="choice-grid">
+          <div class="choice-card" onclick="pick(this,'type','before')">
+            <div class="c-title">가볍게 뛰기 전</div>
+            <div class="c-sub">각성이 필요해요</div>
+            <div class="c-bar"><div class="c-bar-fill" style="width:80%"></div></div>
+          </div>
+          <div class="choice-card" onclick="pick(this,'type','after_light')">
+            <div class="c-title">짧게 회복런</div>
+            <div class="c-sub">5km 이하, 가볍게</div>
+            <div class="c-bar"><div class="c-bar-fill" style="width:40%"></div></div>
+          </div>
+          <div class="choice-card" onclick="pick(this,'type','after_long')">
+            <div class="c-title">장거리 달렸어요</div>
+            <div class="c-sub">10km 이상</div>
+            <div class="c-bar"><div class="c-bar-fill" style="width:20%"></div></div>
+          </div>
+          <div class="choice-card" onclick="pick(this,'type','after_intense')">
+            <div class="c-title">고강도 인터벌</div>
+            <div class="c-sub">몸이 많이 지쳤어요</div>
+            <div class="c-bar"><div class="c-bar-fill" style="width:10%"></div></div>
+          </div>
+        </div>
+        <div class="nav-row">
+          <button class="btn-next" id="next1" disabled onclick="goStep(2)">다음</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step" id="s2">
+        <div class="step-label">드립백 선택 · 2 / 3</div>
+        <div class="step-q">평소 어떤 커피를 좋아해요?</div>
+        <div class="step-sub">원두 선택에 반영돼요</div>
+        <div class="choice-list">
+          <div class="choice-row" onclick="pickRow(this,'flavor','bright')">
+            <div><div class="r-title">밝고 산뜻한 맛</div><div class="r-sub">과일향·산미 있는 라이트 로스팅</div></div>
+            <div class="r-check" id="fc-bright"></div>
+          </div>
+          <div class="choice-row" onclick="pickRow(this,'flavor','balanced')">
+            <div><div class="r-title">균형 잡힌 맛</div><div class="r-sub">단맛·바디감 중간 로스팅</div></div>
+            <div class="r-check" id="fc-balanced"></div>
+          </div>
+          <div class="choice-row" onclick="pickRow(this,'flavor','deep')">
+            <div><div class="r-title">진하고 묵직한 맛</div><div class="r-sub">초콜릿향·다크 로스팅</div></div>
+            <div class="r-check" id="fc-deep"></div>
+          </div>
+          <div class="choice-row" onclick="pickRow(this,'flavor','none')">
+            <div><div class="r-title">잘 모르겠어요</div><div class="r-sub">추천에 맡길게요</div></div>
+            <div class="r-check" id="fc-none"></div>
+          </div>
+        </div>
+        <div class="nav-row">
+          <button class="btn-back" onclick="goStep(1)">이전</button>
+          <button class="btn-next" id="next2" disabled onclick="goStep(3)">다음</button>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step" id="s3">
+        <div class="step-label">드립백 선택 · 3 / 3</div>
+        <div class="step-q">집에서 어떻게 마실 예정이에요?</div>
+        <div class="step-sub">드립백 배합 비율에 반영돼요</div>
+        <div class="choice-grid">
+          <div class="choice-card" onclick="pick(this,'brew','hot')">
+            <div class="c-title">뜨겁게</div>
+            <div class="c-sub">머그컵, 아침에</div>
+          </div>
+          <div class="choice-card" onclick="pick(this,'brew','ice')">
+            <div class="c-title">아이스로</div>
+            <div class="c-sub">컵에 얼음 가득</div>
+          </div>
+          <div class="choice-card" onclick="pick(this,'brew','milk')">
+            <div class="c-title">라떼로</div>
+            <div class="c-sub">우유·오트밀크 추가</div>
+          </div>
+          <div class="choice-card" onclick="pick(this,'brew','any')">
+            <div class="c-title">그때그때</div>
+            <div class="c-sub">상관없어요</div>
+          </div>
+        </div>
+        <div class="nav-row">
+          <button class="btn-back" onclick="goStep(2)">이전</button>
+          <button class="btn-next" id="next3" disabled onclick="showResult()">확인</button>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="step" id="sResult">
+        <div class="result-wrap" id="result-content"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const state = { type: null, flavor: null, brew: null };
+  let currentStep = 1;
+  const totalSteps = 3;
+
+  function renderDots(step) {
+    const dots = document.getElementById('dots');
+    dots.innerHTML = Array.from({ length: totalSteps + 1 }, (_, i) =>
+      `<div class="dot${i + 1 === step ? ' active' : ''}"></div>`
+    ).join('');
+  }
+
+  function pick(el, key, val) {
+    el.parentElement.querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    state[key] = val;
+    if (key === 'type') document.getElementById('next1').disabled = false;
+    if (key === 'brew') document.getElementById('next3').disabled = false;
+  }
+
+  function pickRow(el, key, val) {
+    el.parentElement.querySelectorAll('.choice-row').forEach(r => {
+      r.classList.remove('selected');
+      r.querySelector('.r-check').classList.remove('on');
+    });
+    el.classList.add('selected');
+    el.querySelector('.r-check').classList.add('on');
+    state[key] = val;
+    document.getElementById('next2').disabled = false;
+  }
+
+  function goStep(n) {
+    document.getElementById('s' + currentStep).classList.remove('active');
+    currentStep = n;
+    document.getElementById('s' + currentStep).classList.add('active');
+    renderDots(currentStep);
+  }
+
+  function showResult() {
+    document.getElementById('s3').classList.remove('active');
+    document.getElementById('sResult').classList.add('active');
+    renderDots(4);
+
+    const isBefore = state.type === 'before';
+    const isIntense = state.type === 'after_intense' || state.type === 'after_long';
+
+    let title, sub, tags, note, badgeText, badgeStyle;
+
+    if (isBefore) {
+      badgeText = '각성형'; badgeStyle = 'background:#E1F5EE;color:#085041';
+      title = '에티오피아 예가체프';
+      sub = '화사한 과일향과 높은 카페인으로\n러닝 전 각성에 최적화된 원두예요.';
+      tags = ['라이트 로스팅', '산미 있음', '카페인 강', '에티오피아'];
+      note = '러닝 30–45분 전 섭취 시 지방 산화율이 최대 16% 높아져요. 공복이라면 물 한 컵과 함께 드세요.';
+    } else if (isIntense) {
+      badgeText = '회복형'; badgeStyle = 'background:#FAECE7;color:#712B13';
+      title = '콜롬비아 수프리모 디카프';
+      sub = '카페인을 줄이고 클로로겐산을 높여\n근육 회복과 산화 스트레스 완화에 좋아요.';
+      tags = ['미디엄 로스팅', '저카페인', '클로로겐산', '콜롬비아'];
+      note = '고강도 러닝 후 코르티솔이 높은 상태예요. 추가 카페인은 2시간 후에 섭취하는 게 좋아요.';
+    } else {
+      badgeText = '회복형'; badgeStyle = 'background:#FAECE7;color:#712B13';
+      title = '과테말라 안티구아';
+      sub = '균형 잡힌 바디감과 적당한 카페인으로\n가벼운 러닝 후 편안한 회복에 잘 맞아요.';
+      tags = ['미디엄 로스팅', '균형감', '초콜릿향', '과테말라'];
+      note = '가벼운 러닝 후엔 카페인 섭취가 무방해요. 20–30분 후 드시면 위 부담이 줄어요.';
+    }
+
+    if (state.brew === 'ice') tags.push('아이스 추천');
+    if (state.brew === 'milk') tags.push('라떼 어울림');
+    if (state.flavor === 'bright' && !isBefore) tags.push('산미 조정됨');
+
+    document.getElementById('result-content').innerHTML = `
+      <div class="result-badge" style="${badgeStyle}">${badgeText} 드립백</div>
+      <div class="result-title">${title}</div>
+      <div class="result-sub">${sub.replace('\n', '<br>')}</div>
+      <div class="result-tags">${tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      <div class="result-note">${note}</div>
+      <button class="btn-confirm" style="background:#D85A30;color:#FAECE7" onclick="alert('배송이 확정됐어요!')">
+        배송 확정하기 →
+      </button>
+      <button class="btn-confirm" style="background:#f0ede8;color:#888;margin-top:8px" onclick="resetFlow()">
+        다시 고르기
+      </button>
+    `;
+  }
+
+  function resetFlow() {
+    state.type = null; state.flavor = null; state.brew = null;
+    document.getElementById('sResult').classList.remove('active');
+    document.querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.choice-row').forEach(r => r.classList.remove('selected'));
+    document.querySelectorAll('.r-check').forEach(c => c.classList.remove('on'));
+    document.getElementById('next1').disabled = true;
+    document.getElementById('next2').disabled = true;
+    document.getElementById('next3').disabled = true;
+    currentStep = 1;
+    document.getElementById('s1').classList.add('active');
+    renderDots(1);
+  }
+
+  renderDots(1);
+</script>
+</body>
+</html>

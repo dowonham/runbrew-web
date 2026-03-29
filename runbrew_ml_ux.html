@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RUN:BREW — ml 적립 시각화</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .container { width: 100%; max-width: 400px; }
+
+    .controls-area { padding: 0 0 1.5rem; }
+    .ctrl-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .ctrl-row label { font-size: 13px; color: #888; min-width: 80px; }
+    .ctrl-row input[type=range] { flex: 1; accent-color: #1D9E75; }
+    .ctrl-row span { font-size: 13px; font-weight: 500; min-width: 36px; text-align: right; color: #1a1a1a; }
+    .btn-row { display: flex; gap: 8px; }
+    .add-btn {
+      padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      cursor: pointer; background: #f0ede8; border: 0.5px solid #d0cec8;
+      color: #1a1a1a; transition: all .15s;
+    }
+    .add-btn:hover { background: #fff; }
+
+    .phone-wrap {
+      display: flex; justify-content: center;
+      padding: 2rem 0; background: #eeece6;
+      border-radius: 16px;
+    }
+    .phone {
+      width: 300px; background: #fff;
+      border-radius: 32px; border: 1px solid #d0cec8; overflow: hidden;
+    }
+    .status-bar {
+      height: 44px; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 20px;
+      border-bottom: 0.5px solid #e8e6e0;
+    }
+    .status-bar span { font-size: 12px; color: #888; font-weight: 500; }
+    .screen { padding: 20px 16px 24px; }
+
+    .brew-label { font-size: 11px; color: #888; letter-spacing: .05em; margin-bottom: 6px; }
+    .brew-main { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 16px; }
+    .brew-ml { font-size: 42px; font-weight: 500; color: #1a1a1a; line-height: 1; }
+    .brew-unit { font-size: 14px; color: #888; margin-bottom: 6px; }
+
+    .cup-wrap { margin-bottom: 20px; position: relative; height: 110px; }
+    .cup-svg { width: 100%; height: 110px; }
+
+    .target-row { display: flex; justify-content: space-between; margin-bottom: 20px; }
+    .target-item { text-align: center; }
+    .target-item .val { font-size: 15px; font-weight: 500; color: #1a1a1a; }
+    .target-item .lbl { font-size: 11px; color: #888; margin-top: 2px; }
+
+    .divider { height: 0.5px; background: #e8e6e0; margin-bottom: 16px; }
+
+    .run-btn {
+      width: 100%; padding: 14px; border-radius: 8px; border: none;
+      font-size: 15px; font-weight: 500; cursor: pointer;
+      background: #1D9E75; color: #E1F5EE; transition: all .15s;
+    }
+    .run-btn:active { transform: scale(0.98); }
+    .run-btn.drip { background: #D85A30; color: #FAECE7; }
+
+    .history { margin-top: 16px; }
+    .history-label { font-size: 11px; color: #888; margin-bottom: 8px; }
+    .run-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 0.5px solid #e8e6e0;
+    }
+    .run-item:last-child { border-bottom: none; }
+    .run-item .left .date { font-size: 12px; color: #888; }
+    .run-item .left .dist { font-size: 13px; font-weight: 500; color: #1a1a1a; margin-top: 1px; }
+    .run-item .right { font-size: 13px; color: #1D9E75; font-weight: 500; }
+
+    .toast {
+      display: none; background: #1D9E75; color: #E1F5EE;
+      border-radius: 8px; padding: 10px 14px; font-size: 13px;
+      font-weight: 500; text-align: center; margin-top: 12px;
+    }
+    .toast.drip-toast { background: #D85A30; color: #FAECE7; }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="controls-area">
+    <div class="ctrl-row">
+      <label>러닝 거리</label>
+      <input type="range" min="1" max="21" step="1" value="5" id="run-dist" oninput="updateDist(this.value)">
+      <span id="dist-out">5km</span>
+    </div>
+    <div class="btn-row">
+      <button class="add-btn" onclick="addRun()">+ 러닝 기록 추가</button>
+      <button class="add-btn" onclick="resetRuns()" style="color:#888">초기화</button>
+    </div>
+  </div>
+
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>RUN:BREW</span>
+        <span>●●●</span>
+      </div>
+      <div class="screen">
+        <div class="brew-label">오늘 적립된 커피</div>
+        <div class="brew-main">
+          <div class="brew-ml" id="ml-display">75</div>
+          <div class="brew-unit">ml</div>
+        </div>
+
+        <div class="cup-wrap">
+          <svg class="cup-svg" viewBox="0 0 268 110" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="cup-clip">
+                <path d="M40 10 L228 10 L210 98 L58 98 Z"/>
+              </clipPath>
+            </defs>
+            <rect id="coffee-fill" x="40" y="10" width="188" height="88"
+              clip-path="url(#cup-clip)" fill="#D85A30" opacity="0.15"
+              style="transition:all .6s ease"/>
+            <rect id="coffee-level" x="40" y="54" width="188" height="44"
+              clip-path="url(#cup-clip)" fill="#D85A30" opacity="0.7"
+              style="transition:all .6s ease"/>
+            <path d="M40 10 L228 10 L210 98 L58 98 Z"
+              fill="none" stroke="#888" stroke-width="1.5"/>
+            <line x1="40" y1="10" x2="228" y2="10" stroke="#d0cec8" stroke-width="1"/>
+            <text id="cup-pct" x="134" y="58" text-anchor="middle"
+              font-size="13" font-weight="500" fill="#1a1a1a"
+              style="transition:all .6s ease">50%</text>
+            <line id="target-line" x1="42" y1="30" x2="226" y2="30"
+              stroke="#1D9E75" stroke-width="1" stroke-dasharray="4 3" opacity="0.6"/>
+            <text x="230" y="34" font-size="10" fill="#0F6E56">150ml</text>
+          </svg>
+        </div>
+
+        <div class="target-row">
+          <div class="target-item">
+            <div class="val" id="total-km">15km</div>
+            <div class="lbl">총 러닝</div>
+          </div>
+          <div class="target-item">
+            <div class="val" id="ml-to-go">75ml</div>
+            <div class="lbl">드립백까지</div>
+          </div>
+          <div class="target-item">
+            <div class="val" id="run-count">3회</div>
+            <div class="lbl">이번 주</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <button class="run-btn" id="main-btn">
+          드립백 받기까지 75ml 남음
+        </button>
+
+        <div class="toast" id="toast">드립백이 배송 준비됩니다!</div>
+
+        <div class="history">
+          <div class="history-label">최근 러닝 기록</div>
+          <div id="run-list">
+            <div class="run-item">
+              <div class="left"><div class="date">오늘</div><div class="dist">5km · 보통 강도</div></div>
+              <div class="right">+25ml</div>
+            </div>
+            <div class="run-item">
+              <div class="left"><div class="date">어제</div><div class="dist">7km · 고강도</div></div>
+              <div class="right">+35ml</div>
+            </div>
+            <div class="run-item">
+              <div class="left"><div class="date">3일 전</div><div class="dist">3km · 가벼운</div></div>
+              <div class="right">+15ml</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const DRIPPER_TARGET = 150;
+  const ML_PER_KM = 5;
+
+  let totalMl = 75;
+  let totalKm = 15;
+  let runCount = 3;
+  let dist = 5;
+
+  const intensities = ['가벼운', '보통', '고강도'];
+  let runs = [
+    { date: '오늘',  dist: 5, intensity: '보통',  ml: 25 },
+    { date: '어제',  dist: 7, intensity: '고강도', ml: 35 },
+    { date: '3일 전', dist: 3, intensity: '가벼운', ml: 15 }
+  ];
+
+  function updateDist(v) {
+    dist = parseInt(v);
+    document.getElementById('dist-out').textContent = dist + 'km';
+  }
+
+  function addRun() {
+    const ml = dist * ML_PER_KM;
+    const intensity = intensities[Math.min(Math.floor(dist / 7), 2)];
+    runs.unshift({ date: '방금', dist, intensity, ml });
+    totalMl += ml;
+    totalKm += dist;
+    runCount++;
+    render();
+  }
+
+  function resetRuns() {
+    totalMl = 0; totalKm = 0; runCount = 0; runs = [];
+    render();
+  }
+
+  function render() {
+    const capped = Math.min(totalMl, DRIPPER_TARGET);
+    const pct = Math.round(capped / DRIPPER_TARGET * 100);
+    const toGo = Math.max(DRIPPER_TARGET - totalMl, 0);
+    const reached = totalMl >= DRIPPER_TARGET;
+
+    document.getElementById('ml-display').textContent = Math.min(totalMl, DRIPPER_TARGET);
+    document.getElementById('total-km').textContent = totalKm + 'km';
+    document.getElementById('ml-to-go').textContent = reached ? '완료!' : toGo + 'ml';
+    document.getElementById('run-count').textContent = runCount + '회';
+    document.getElementById('cup-pct').textContent = pct + '%';
+
+    const levelH = Math.round(88 * pct / 100);
+    const levelY = 98 - levelH;
+    document.getElementById('coffee-level').setAttribute('y', levelY);
+    document.getElementById('coffee-level').setAttribute('height', levelH);
+    document.getElementById('coffee-level').setAttribute('opacity', reached ? '0.9' : '0.7');
+    document.getElementById('coffee-fill').setAttribute('opacity', reached ? '0' : '0.12');
+
+    const btn = document.getElementById('main-btn');
+    const toast = document.getElementById('toast');
+    if (reached) {
+      btn.textContent = '드립백 선택하기 →';
+      btn.className = 'run-btn drip';
+      toast.className = 'toast drip-toast show';
+      toast.textContent = '150ml 달성! 드립백이 배송 준비됩니다.';
+    } else {
+      btn.textContent = '드립백 받기까지 ' + toGo + 'ml 남음';
+      btn.className = 'run-btn';
+      toast.className = 'toast';
+    }
+
+    const list = document.getElementById('run-list');
+    list.innerHTML = runs.slice(0, 4).map(r =>
+      `<div class="run-item">
+        <div class="left">
+          <div class="date">${r.date}</div>
+          <div class="dist">${r.dist}km · ${r.intensity}</div>
+        </div>
+        <div class="right">+${r.ml}ml</div>
+      </div>`
+    ).join('');
+  }
+
+  render();
+</script>
+</body>
+</html>

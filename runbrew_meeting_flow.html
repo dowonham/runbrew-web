@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RUN:BREW — 커피런 모임 개설 흐름</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .wrap { width: 100%; max-width: 380px; }
+
+    .stepper-header {
+      display: flex; align-items: center; gap: 0;
+      margin-bottom: 1.5rem; border: 0.5px solid #d0cec8;
+      border-radius: 8px; overflow: hidden;
+    }
+    .step-pill {
+      flex: 1; padding: 9px 4px; font-size: 11px; font-weight: 500;
+      text-align: center; color: #888; cursor: pointer; background: #fff;
+      border: none; border-right: 0.5px solid #d0cec8;
+      transition: all .15s; line-height: 1.3;
+    }
+    .step-pill:last-child { border-right: none; }
+    .step-pill.on { background: #1D9E75; color: #E1F5EE; }
+    .step-pill.done { background: #f5f5f0; color: #888; }
+
+    .panel { display: none; }
+    .panel.on { display: block; }
+
+    .outer {
+      display: flex; justify-content: center;
+      padding: 1.5rem; background: #eeece6; border-radius: 16px;
+    }
+    .phone {
+      width: 300px; background: #fff;
+      border-radius: 32px; border: 1px solid #d0cec8; overflow: hidden;
+    }
+    .sb {
+      height: 44px; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 20px;
+      border-bottom: 0.5px solid #e8e6e0;
+    }
+    .sb span { font-size: 12px; color: #888; font-weight: 500; }
+    .scr { padding: 18px 14px 24px; }
+
+    .screen-label { font-size: 11px; color: #888; margin-bottom: 6px; }
+    .screen-title { font-size: 17px; font-weight: 500; color: #1a1a1a; margin-bottom: 4px; line-height: 1.3; }
+    .screen-sub { font-size: 12px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+
+    .input-row { margin-bottom: 12px; }
+    .input-row label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; }
+    .fake-input {
+      border: 0.5px solid #d0cec8; border-radius: 8px;
+      padding: 10px 12px; font-size: 13px; color: #1a1a1a; background: #fff;
+    }
+
+    .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .opt {
+      border: 0.5px solid #d0cec8; border-radius: 8px;
+      padding: 11px 10px; cursor: pointer; transition: all .15s; background: #fff;
+    }
+    .opt:hover { background: #f5f5f0; }
+    .opt.on { border-color: #1D9E75; background: #E1F5EE; }
+    .opt.on .ot { color: #085041; }
+    .opt.on .os { color: #0F6E56; }
+    .ot { font-size: 12px; font-weight: 500; color: #1a1a1a; margin-bottom: 2px; }
+    .os { font-size: 11px; color: #888; }
+
+    .cafe-pick {
+      border: 0.5px solid #d0cec8; border-radius: 8px;
+      padding: 11px 12px; margin-bottom: 8px; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      transition: all .15s; background: #fff;
+    }
+    .cafe-pick:hover { background: #f5f5f0; }
+    .cafe-pick.on { border-color: #D85A30; background: #FAECE7; }
+    .cafe-pick.on .cp-name { color: #712B13; }
+    .cp-name { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+    .cp-sub { font-size: 11px; color: #888; margin-top: 2px; }
+    .cp-check {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1px solid #d0cec8; display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .cp-check.on { background: #D85A30; border-color: #D85A30; }
+    .cp-check.on::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #FAECE7; }
+
+    .info-box {
+      background: #f5f5f0; border-radius: 8px;
+      padding: 10px 12px; margin: 12px 0;
+    }
+    .info-box .ib-title { font-size: 12px; font-weight: 500; color: #1a1a1a; margin-bottom: 3px; }
+    .info-box .ib-sub { font-size: 11px; color: #888; line-height: 1.5; }
+
+    .preview-card {
+      border: 0.5px solid #1D9E75; border-radius: 12px;
+      padding: 14px; background: #E1F5EE; margin-bottom: 16px;
+    }
+    .preview-title { font-size: 14px; font-weight: 500; color: #085041; margin-bottom: 6px; }
+    .preview-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+    .preview-row .pl { color: #0F6E56; }
+    .preview-row .pr { color: #085041; font-weight: 500; }
+
+    .attend-list { margin-bottom: 16px; }
+    .attend-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 0.5px solid #e8e6e0;
+    }
+    .attend-item:last-child { border-bottom: none; }
+    .av {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 500; flex-shrink: 0;
+    }
+    .attend-name { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+    .attend-meta { font-size: 11px; color: #888; margin-top: 1px; }
+    .attend-ml { font-size: 12px; font-weight: 500; color: #1D9E75; margin-left: auto; }
+
+    .crew-note {
+      font-size: 11px; color: #0F6E56; background: #E1F5EE;
+      border-radius: 8px; padding: 8px 10px; margin-bottom: 12px;
+    }
+
+    .after-card {
+      border: 0.5px solid #e8e6e0; border-radius: 12px;
+      padding: 12px; margin-bottom: 10px;
+    }
+    .after-title { font-size: 13px; font-weight: 500; color: #1a1a1a; margin-bottom: 8px; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+    .stat-box { background: #f5f5f0; border-radius: 8px; padding: 8px; text-align: center; }
+    .stat-v { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+    .stat-l { font-size: 10px; color: #888; margin-top: 2px; }
+
+    .coffee-line {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border: 0.5px solid #e8e6e0;
+      border-radius: 8px; margin-bottom: 8px;
+    }
+    .c-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .c-txt { font-size: 12px; color: #1a1a1a; }
+    .c-sub { font-size: 11px; color: #888; }
+
+    .member-avatars { display: flex; margin-bottom: 8px; }
+    .m-av {
+      width: 24px; height: 24px; border-radius: 50%;
+      font-size: 10px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid #fff;
+    }
+    .m-av + .m-av { margin-left: -6px; }
+
+    .share-note {
+      font-size: 12px; color: #888; background: #f5f5f0;
+      border-radius: 8px; padding: 8px 10px; line-height: 1.5; margin-bottom: 12px;
+    }
+
+    .nav-row { display: flex; gap: 8px; margin-top: 4px; }
+    .btn-p {
+      flex: 1; padding: 12px; border-radius: 8px; border: none;
+      font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s;
+    }
+    .btn-p.teal { background: #1D9E75; color: #E1F5EE; }
+    .btn-p.coral { background: #D85A30; color: #FAECE7; }
+    .btn-p.ghost {
+      background: transparent; border: 0.5px solid #d0cec8; color: #888;
+    }
+    .btn-p:active { transform: scale(.98); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stepper-header">
+    <button class="step-pill on"  id="pill0" onclick="go(0)">모임 개설</button>
+    <button class="step-pill"     id="pill1" onclick="go(1)">카페 연결</button>
+    <button class="step-pill"     id="pill2" onclick="go(2)">참가자 현황</button>
+    <button class="step-pill"     id="pill3" onclick="go(3)">러닝 후 기록</button>
+  </div>
+
+  <!-- Step 0: 모임 개설 -->
+  <div class="panel on" id="p0">
+    <div class="outer"><div class="phone">
+      <div class="sb"><span>9:41</span><span>RUN:BREW</span><span>●●●</span></div>
+      <div class="scr">
+        <div class="screen-label">모임 만들기</div>
+        <div class="screen-title">어떤 커피런을 만들어볼까요?</div>
+        <div class="screen-sub">러닝 코스와 카페를 연결하면 자동으로 추천돼요</div>
+
+        <div class="option-grid" id="type-opts">
+          <div class="opt on" onclick="pickOpt(this)">
+            <div class="ot">카페 경유런</div>
+            <div class="os">코스 중간 카페 들르기</div>
+          </div>
+          <div class="opt" onclick="pickOpt(this)">
+            <div class="ot">러닝 후 시음회</div>
+            <div class="os">완주 후 함께 커피</div>
+          </div>
+          <div class="opt" onclick="pickOpt(this)">
+            <div class="ot">드립백 교환런</div>
+            <div class="os">각자 원두 가져오기</div>
+          </div>
+          <div class="opt" onclick="pickOpt(this)">
+            <div class="ot">러너 카페 투어</div>
+            <div class="os">오너 러너 카페 탐방</div>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <label>날짜 · 시간</label>
+          <div class="fake-input">3월 29일 토요일 · 오전 7:30</div>
+        </div>
+        <div class="input-row">
+          <label>거리 목표</label>
+          <div class="fake-input">7km</div>
+        </div>
+        <div class="input-row">
+          <label>최대 인원</label>
+          <div class="fake-input">20명</div>
+        </div>
+
+        <div class="nav-row">
+          <button class="btn-p teal" onclick="go(1)">카페 연결하기 →</button>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- Step 1: 카페 연결 -->
+  <div class="panel" id="p1">
+    <div class="outer"><div class="phone">
+      <div class="sb"><span>9:41</span><span>RUN:BREW</span><span>●●●</span></div>
+      <div class="scr">
+        <div class="screen-label">카페 연결 · 코스 주변 3곳</div>
+        <div class="screen-title">경유할 카페를 골라요</div>
+        <div class="screen-sub">러너 친화 카페가 우선 추천돼요</div>
+
+        <div class="cafe-pick on" onclick="pickCafe(this, 0)">
+          <div>
+            <div class="cp-name">브루어리 성수</div>
+            <div class="cp-sub">320m · 러너 오너 · 땀 OK</div>
+          </div>
+          <div class="cp-check on" id="cc0"></div>
+        </div>
+        <div class="cafe-pick" onclick="pickCafe(this, 1)">
+          <div>
+            <div class="cp-name">센터커피</div>
+            <div class="cp-sub">580m · 디카프 있음 · 넓은 좌석</div>
+          </div>
+          <div class="cp-check" id="cc1"></div>
+        </div>
+        <div class="cafe-pick" onclick="pickCafe(this, 2)">
+          <div>
+            <div class="cp-name">어니언 성수</div>
+            <div class="cp-sub">920m · 러너 오너 · 원두 구매 가능</div>
+          </div>
+          <div class="cp-check" id="cc2"></div>
+        </div>
+
+        <div class="info-box">
+          <div class="ib-title">카페 측 자동 알림</div>
+          <div class="ib-sub">선택 시 카페에 "20명 방문 예정" 알림이 자동 발송돼요. 카페는 러너 메뉴를 미리 준비할 수 있어요.</div>
+        </div>
+
+        <div class="nav-row">
+          <button class="btn-p ghost" onclick="go(0)">이전</button>
+          <button class="btn-p teal" onclick="go(2)">모임 공개하기 →</button>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- Step 2: 참가자 현황 -->
+  <div class="panel" id="p2">
+    <div class="outer"><div class="phone">
+      <div class="sb"><span>9:41</span><span>RUN:BREW</span><span>●●●</span></div>
+      <div class="scr">
+        <div class="preview-card">
+          <div class="preview-title">성수 카페런 7km</div>
+          <div class="preview-row"><span class="pl">일시</span><span class="pr">3/29 토 · 오전 7:30</span></div>
+          <div class="preview-row"><span class="pl">출발</span><span class="pr">브루어리 성수 앞</span></div>
+          <div class="preview-row"><span class="pl">경유 카페</span><span class="pr">브루어리 성수</span></div>
+          <div class="preview-row"><span class="pl">참가 현황</span><span class="pr">18 / 20명</span></div>
+        </div>
+
+        <div style="font-size:11px;color:#888;margin-bottom:8px">참가자 · 18명</div>
+        <div class="attend-list">
+          <div class="attend-item">
+            <div class="av" style="background:#E1F5EE;color:#085041">JH</div>
+            <div><div class="attend-name">재현 (주최)</div><div class="attend-meta">누적 247km · 각성형 선호</div></div>
+            <div class="attend-ml">+42ml</div>
+          </div>
+          <div class="attend-item">
+            <div class="av" style="background:#FAECE7;color:#712B13">SY</div>
+            <div><div class="attend-name">수연</div><div class="attend-meta">누적 189km · 회복형 선호</div></div>
+            <div class="attend-ml">+35ml</div>
+          </div>
+          <div class="attend-item">
+            <div class="av" style="background:#EEEDFE;color:#3C3489">MK</div>
+            <div><div class="attend-name">민경</div><div class="attend-meta">누적 91km · 취향 수집 중</div></div>
+            <div class="attend-ml">+20ml</div>
+          </div>
+          <div class="attend-item">
+            <div class="av" style="background:#EAF3DE;color:#27500A">DW</div>
+            <div><div class="attend-name">도원</div><div class="attend-meta">누적 312km · 각성형 선호</div></div>
+            <div class="attend-ml">+55ml</div>
+          </div>
+        </div>
+
+        <div class="crew-note">오늘 참가자 전원 ml 합산 → 752ml 공동 적립 예정</div>
+
+        <div class="nav-row">
+          <button class="btn-p ghost" onclick="go(1)">이전</button>
+          <button class="btn-p coral" onclick="go(3)">러닝 시작 →</button>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- Step 3: 러닝 후 기록 -->
+  <div class="panel" id="p3">
+    <div class="outer"><div class="phone">
+      <div class="sb"><span>9:41</span><span>RUN:BREW</span><span>●●●</span></div>
+      <div class="scr">
+        <div class="screen-label">모임 완료</div>
+        <div class="screen-title">성수 카페런 마쳤어요</div>
+        <div class="screen-sub" style="margin-bottom:16px">18명이 함께 달렸어요</div>
+
+        <div class="after-card">
+          <div class="after-title">오늘 모임 기록</div>
+          <div class="stat-grid">
+            <div class="stat-box"><div class="stat-v">7.2km</div><div class="stat-l">평균 거리</div></div>
+            <div class="stat-box"><div class="stat-v">18명</div><div class="stat-l">완주</div></div>
+            <div class="stat-box"><div class="stat-v">810ml</div><div class="stat-l">공동 적립</div></div>
+          </div>
+          <div class="coffee-line">
+            <div class="c-dot" style="background:#D85A30"></div>
+            <div>
+              <div class="c-txt">브루어리 성수 · 콜드브루 디카프</div>
+              <div class="c-sub">참가자 14명 주문 · 회복형 선호</div>
+            </div>
+          </div>
+          <div class="member-avatars">
+            <div class="m-av" style="background:#E1F5EE;color:#085041">JH</div>
+            <div class="m-av" style="background:#FAECE7;color:#712B13">SY</div>
+            <div class="m-av" style="background:#EEEDFE;color:#3C3489">MK</div>
+            <div class="m-av" style="background:#EAF3DE;color:#27500A">DW</div>
+            <div class="m-av" style="background:#f5f5f0;color:#888;font-size:9px">+14</div>
+          </div>
+        </div>
+
+        <div class="share-note">
+          이 모임 기록이 피드에 자동 공유돼요. 참가자 전원의 ml가 크루 공동 목표에 합산됩니다.
+        </div>
+
+        <div class="nav-row">
+          <button class="btn-p ghost" onclick="go(2)">이전</button>
+          <button class="btn-p teal" onclick="alert('피드에 공유됐어요!')">피드에 공유하기 →</button>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<script>
+  let cur = 0;
+
+  function go(n) {
+    document.getElementById('p' + cur).classList.remove('on');
+    document.getElementById('pill' + cur).classList.remove('on');
+    if (n > cur) document.getElementById('pill' + cur).classList.add('done');
+    else document.getElementById('pill' + cur).classList.remove('done');
+    cur = n;
+    document.getElementById('p' + cur).classList.add('on');
+    document.getElementById('pill' + cur).classList.add('on');
+    document.getElementById('pill' + cur).classList.remove('done');
+  }
+
+  function pickOpt(el) {
+    el.closest('.option-grid').querySelectorAll('.opt').forEach(o => o.classList.remove('on'));
+    el.classList.add('on');
+  }
+
+  const cafeState = [true, false, false];
+  function pickCafe(el, i) {
+    cafeState[i] = !cafeState[i];
+    el.classList.toggle('on', cafeState[i]);
+    document.getElementById('cc' + i).classList.toggle('on', cafeState[i]);
+  }
+</script>
+</body>
+</html>

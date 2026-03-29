@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RUN:BREW — 커뮤니티</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .outer {
+      display: flex; justify-content: center;
+      padding: 2rem; background: #eeece6;
+      border-radius: 16px; width: 100%; max-width: 380px;
+    }
+    .phone {
+      width: 300px; background: #fff;
+      border-radius: 32px; border: 1px solid #d0cec8; overflow: hidden;
+    }
+    .sb {
+      height: 44px; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 20px;
+      border-bottom: 0.5px solid #e8e6e0;
+    }
+    .sb span { font-size: 12px; color: #888; font-weight: 500; }
+    .scr { padding: 16px 14px 28px; }
+
+    .tab-row {
+      display: flex; gap: 0; margin-bottom: 16px;
+      border: 0.5px solid #d0cec8; border-radius: 8px; overflow: hidden;
+    }
+    .tab {
+      flex: 1; padding: 8px; font-size: 12px; font-weight: 500;
+      text-align: center; cursor: pointer; color: #888;
+      background: #fff; border: none; transition: all .15s;
+    }
+    .tab.on { background: #1D9E75; color: #E1F5EE; }
+
+    .panel { display: none; }
+    .panel.on { display: block; }
+
+    /* 모임 탭 */
+    .meet-card {
+      border: 0.5px solid #e8e6e0; border-radius: 12px;
+      padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all .15s;
+    }
+    .meet-card:hover { border-color: #d0cec8; }
+    .meet-card.hot { border-color: #D85A30; }
+    .hot-badge {
+      font-size: 10px; font-weight: 500; padding: 2px 7px;
+      border-radius: 20px; background: #FAECE7; color: #712B13;
+      display: inline-block; margin-bottom: 6px;
+    }
+    .meet-title { font-size: 13px; font-weight: 500; color: #1a1a1a; margin-bottom: 3px; }
+    .meet-meta { font-size: 11px; color: #888; line-height: 1.6; }
+    .meet-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #e8e6e0;
+    }
+    .attend-count { font-size: 11px; color: #888; }
+    .join-btn {
+      font-size: 11px; font-weight: 500; padding: 4px 12px;
+      border-radius: 20px; border: none; cursor: pointer; transition: all .15s;
+    }
+    .join-btn.teal { background: #1D9E75; color: #E1F5EE; }
+    .join-btn.coral { background: #D85A30; color: #FAECE7; }
+    .join-btn.gray {
+      background: #f5f5f0; color: #888;
+      border: 0.5px solid #d0cec8;
+    }
+    .make-btn {
+      font-size: 12px; color: #888; background: none;
+      border: none; cursor: pointer; display: block;
+      margin: 12px auto 0; text-align: center;
+    }
+
+    /* 피드 탭 */
+    .feed-item { padding: 12px 0; border-bottom: 0.5px solid #e8e6e0; }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 500; flex-shrink: 0;
+    }
+    .feed-name { font-size: 12px; font-weight: 500; color: #1a1a1a; }
+    .feed-time { font-size: 11px; color: #888; }
+    .run-summary {
+      background: #f5f5f0; border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 8px;
+    }
+    .run-stats { display: flex; gap: 16px; }
+    .run-stat .val { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+    .run-stat .lbl { font-size: 10px; color: #888; margin-top: 1px; }
+    .coffee-rec {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border: 0.5px solid #e8e6e0;
+      border-radius: 8px; margin-bottom: 8px;
+    }
+    .c-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .c-txt { font-size: 12px; color: #1a1a1a; }
+    .c-sub { font-size: 11px; color: #888; }
+    .feed-reaction { display: flex; gap: 10px; }
+    .react {
+      font-size: 11px; color: #888; cursor: pointer;
+      display: flex; align-items: center; gap: 3px;
+    }
+    .react svg { width: 12px; height: 12px; stroke: currentColor; fill: none; }
+    .react.liked { color: #D85A30; }
+
+    /* 크루 탭 */
+    .crew-card {
+      border: 0.5px solid #e8e6e0; border-radius: 12px;
+      padding: 12px; margin-bottom: 8px;
+    }
+    .crew-top {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 8px;
+    }
+    .crew-name { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+    .crew-sub { font-size: 11px; color: #888; margin-top: 2px; }
+    .crew-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+    .crew-stat {
+      background: #f5f5f0; border-radius: 8px;
+      padding: 7px 8px; text-align: center;
+    }
+    .crew-stat .cv { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+    .crew-stat .cl { font-size: 10px; color: #888; margin-top: 1px; }
+    .crew-ml-bar {
+      height: 4px; border-radius: 2px;
+      background: #f5f5f0; overflow: hidden; margin-bottom: 4px;
+    }
+    .crew-ml-fill { height: 100%; border-radius: 2px; background: #D85A30; }
+    .crew-ml-label {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: #888;
+    }
+    .join-crew {
+      width: 100%; padding: 9px; border-radius: 8px; font-size: 12px;
+      font-weight: 500; cursor: pointer; border: 0.5px solid #d0cec8;
+      background: transparent; color: #1a1a1a; margin-top: 8px; transition: all .15s;
+    }
+    .join-crew:hover { background: #f5f5f0; }
+    .status-pill {
+      font-size: 11px; padding: 3px 8px; border-radius: 20px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+<div class="outer">
+  <div class="phone">
+    <div class="sb">
+      <span>9:41</span><span>RUN:BREW</span><span>●●●</span>
+    </div>
+    <div class="scr">
+      <div class="tab-row">
+        <button class="tab on" onclick="showTab('meet', this)">모임</button>
+        <button class="tab" onclick="showTab('feed', this)">피드</button>
+        <button class="tab" onclick="showTab('crew', this)">크루</button>
+      </div>
+
+      <!-- 모임 탭 -->
+      <div class="panel on" id="tab-meet">
+        <div class="meet-card hot">
+          <div class="hot-badge">이번 주 토요일</div>
+          <div class="meet-title">성수 카페런 7km</div>
+          <div class="meet-meta">
+            브루어리 성수 출발 · 어니언 성수 경유<br>
+            러닝 후 드립백 시음회 · 참가비 무료
+          </div>
+          <div class="meet-footer">
+            <div class="attend-count">18명 참가 확정</div>
+            <button class="join-btn coral">참가하기</button>
+          </div>
+        </div>
+
+        <div class="meet-card">
+          <div class="meet-title">한강 새벽런 + 콜드브루</div>
+          <div class="meet-meta">
+            잠수교 출발 · 5km 회복런<br>
+            러닝 후 카페 세션 포함 · 다음 주 수요일 6:30
+          </div>
+          <div class="meet-footer">
+            <div class="attend-count">9명 참가 확정</div>
+            <button class="join-btn teal">참가하기</button>
+          </div>
+        </div>
+
+        <div class="meet-card">
+          <div class="meet-title">원두 로스팅 + 10km 인터벌</div>
+          <div class="meet-meta">
+            망원 로스터리 출발 · 고강도 훈련<br>
+            러너 오너 카페 직접 원두 설명 · 3월 29일
+          </div>
+          <div class="meet-footer">
+            <div class="attend-count">6명 참가 확정</div>
+            <button class="join-btn gray">마감 임박</button>
+          </div>
+        </div>
+
+        <button class="make-btn" onclick="alert('모임 만들기 페이지로 이동합니다.')">+ 모임 만들기</button>
+      </div>
+
+      <!-- 피드 탭 -->
+      <div class="panel" id="tab-feed">
+        <div class="feed-item">
+          <div class="feed-top">
+            <div class="avatar" style="background:#E1F5EE;color:#085041">JH</div>
+            <div>
+              <div class="feed-name">재현</div>
+              <div class="feed-time">방금 · 성수동</div>
+            </div>
+          </div>
+          <div class="run-summary">
+            <div class="run-stats">
+              <div class="run-stat"><div class="val">8.4km</div><div class="lbl">거리</div></div>
+              <div class="run-stat"><div class="val">5:12</div><div class="lbl">페이스</div></div>
+              <div class="run-stat"><div class="val">+42ml</div><div class="lbl">적립</div></div>
+            </div>
+          </div>
+          <div class="coffee-rec">
+            <div class="c-dot" style="background:#D85A30"></div>
+            <div>
+              <div class="c-txt">콜드브루 디카프 · 브루어리 성수</div>
+              <div class="c-sub">앱 추천 회복형 · 근육 산화 스트레스 완화</div>
+            </div>
+          </div>
+          <div class="feed-reaction">
+            <div class="react liked">
+              <svg viewBox="0 0 24 24" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+              24
+            </div>
+            <div class="react">
+              <svg viewBox="0 0 24 24" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              댓글 3
+            </div>
+          </div>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-top">
+            <div class="avatar" style="background:#FAECE7;color:#712B13">SY</div>
+            <div>
+              <div class="feed-name">수연</div>
+              <div class="feed-time">2시간 전 · 한강</div>
+            </div>
+          </div>
+          <div class="run-summary">
+            <div class="run-stats">
+              <div class="run-stat"><div class="val">12km</div><div class="lbl">거리</div></div>
+              <div class="run-stat"><div class="val">4:48</div><div class="lbl">페이스</div></div>
+              <div class="run-stat"><div class="val">+60ml</div><div class="lbl">적립</div></div>
+            </div>
+          </div>
+          <div class="coffee-rec">
+            <div class="c-dot" style="background:#1D9E75"></div>
+            <div>
+              <div class="c-txt">에티오피아 예가체프 드립 · 센터커피</div>
+              <div class="c-sub">장거리 후 클로로겐산 회복 · 항산화 효과</div>
+            </div>
+          </div>
+          <div class="feed-reaction">
+            <div class="react">
+              <svg viewBox="0 0 24 24" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+              31
+            </div>
+            <div class="react">
+              <svg viewBox="0 0 24 24" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              댓글 7
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 크루 탭 -->
+      <div class="panel" id="tab-crew">
+        <div class="crew-card">
+          <div class="crew-top">
+            <div>
+              <div class="crew-name">성수 카페러너스</div>
+              <div class="crew-sub">멤버 24명 · 성수·용산 활동</div>
+            </div>
+            <div class="status-pill" style="background:#E1F5EE;color:#085041">참여중</div>
+          </div>
+          <div class="crew-stats">
+            <div class="crew-stat"><div class="cv">312km</div><div class="cl">이번달 총</div></div>
+            <div class="crew-stat"><div class="cv">1,560ml</div><div class="cl">크루 적립</div></div>
+            <div class="crew-stat"><div class="cv">8개</div><div class="cl">경유 카페</div></div>
+          </div>
+          <div style="font-size:11px;color:#888;margin-bottom:6px">크루 드립백 목표 · 2,000ml</div>
+          <div class="crew-ml-bar"><div class="crew-ml-fill" style="width:78%"></div></div>
+          <div class="crew-ml-label"><span>1,560ml 적립됨</span><span>440ml 남음</span></div>
+        </div>
+
+        <div class="crew-card">
+          <div class="crew-top">
+            <div>
+              <div class="crew-name">한강 새벽 크루</div>
+              <div class="crew-sub">멤버 41명 · 한강 활동</div>
+            </div>
+            <div class="status-pill" style="background:#f5f5f0;color:#888;border:0.5px solid #d0cec8">공개</div>
+          </div>
+          <div class="crew-stats">
+            <div class="crew-stat"><div class="cv">528km</div><div class="cl">이번달 총</div></div>
+            <div class="crew-stat"><div class="cv">2,640ml</div><div class="cl">크루 적립</div></div>
+            <div class="crew-stat"><div class="cv">12개</div><div class="cl">경유 카페</div></div>
+          </div>
+          <div style="font-size:11px;color:#888;margin-bottom:6px">크루 드립백 목표 · 3,000ml</div>
+          <div class="crew-ml-bar"><div class="crew-ml-fill" style="width:88%"></div></div>
+          <div class="crew-ml-label"><span>2,640ml 적립됨</span><span>360ml 남음</span></div>
+          <button class="join-crew" onclick="alert('크루에 합류했어요!')">크루 합류하기 →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function showTab(id, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+    document.getElementById('tab-' + id).classList.add('on');
+    el.classList.add('on');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RUN:BREW — 러너 카페 추천</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .outer {
+      display: flex; justify-content: center;
+      padding: 2rem; background: #eeece6;
+      border-radius: 16px; width: 100%; max-width: 380px;
+    }
+    .phone {
+      width: 300px; background: #fff;
+      border-radius: 32px; border: 1px solid #d0cec8; overflow: hidden;
+    }
+    .sb {
+      height: 44px; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 20px;
+      border-bottom: 0.5px solid #e8e6e0;
+    }
+    .sb span { font-size: 12px; color: #888; font-weight: 500; }
+    .scr { padding: 16px 14px 24px; }
+
+    .context-bar {
+      background: #f5f5f0; border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 14px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .ctx-left { font-size: 12px; color: #888; }
+    .ctx-left strong { font-size: 13px; font-weight: 500; color: #1a1a1a; display: block; }
+    .ctx-badge {
+      font-size: 11px; font-weight: 500; padding: 3px 8px;
+      border-radius: 20px; background: #E1F5EE; color: #085041;
+    }
+
+    .filter-row {
+      display: flex; gap: 6px; margin-bottom: 14px;
+      overflow-x: auto; padding-bottom: 2px;
+    }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .chip {
+      font-size: 11px; padding: 5px 10px; border-radius: 20px;
+      border: 0.5px solid #d0cec8; background: #fff;
+      color: #888; cursor: pointer; white-space: nowrap;
+      transition: all .15s; flex-shrink: 0;
+    }
+    .chip.on { background: #1D9E75; border-color: #1D9E75; color: #E1F5EE; }
+
+    .section-label { font-size: 11px; color: #888; margin-bottom: 8px; letter-spacing: .03em; }
+
+    .cafe-card {
+      border: 0.5px solid #e8e6e0; border-radius: 12px;
+      padding: 12px; margin-bottom: 8px; cursor: pointer;
+      transition: all .15s; background: #fff;
+    }
+    .cafe-card:hover { border-color: #d0cec8; background: #f5f5f0; }
+    .cafe-card.expanded { border-color: #1D9E75; }
+
+    .card-top {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 6px;
+    }
+    .cafe-name { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+    .cafe-dist { font-size: 12px; color: #888; margin-top: 2px; }
+    .badge-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .runner-badge {
+      font-size: 10px; font-weight: 500; padding: 2px 7px;
+      border-radius: 20px; background: #FAECE7; color: #712B13; white-space: nowrap;
+    }
+    .course-badge {
+      font-size: 10px; font-weight: 500; padding: 2px 7px;
+      border-radius: 20px; background: #E1F5EE; color: #085041; white-space: nowrap;
+    }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+    .tag {
+      font-size: 10px; padding: 2px 7px; border-radius: 20px;
+      border: 0.5px solid #e8e6e0; color: #888;
+    }
+
+    .detail {
+      display: none; border-top: 0.5px solid #e8e6e0;
+      margin-top: 8px; padding-top: 10px;
+    }
+    .detail.open { display: block; }
+
+    .detail-row {
+      display: flex; justify-content: space-between;
+      font-size: 12px; padding: 3px 0;
+    }
+    .detail-row .dl { color: #888; }
+    .detail-row .dr { color: #1a1a1a; font-weight: 500; }
+
+    .owner-note {
+      font-size: 11px; color: #888; background: #f5f5f0;
+      border-radius: 8px; padding: 8px 10px;
+      margin-top: 8px; line-height: 1.5;
+    }
+    .owner-note strong { color: #1a1a1a; font-weight: 500; }
+
+    .action-row { display: flex; gap: 6px; margin-top: 10px; }
+    .act-btn {
+      flex: 1; padding: 8px; border-radius: 8px; font-size: 12px;
+      font-weight: 500; cursor: pointer;
+      border: 0.5px solid #d0cec8; background: transparent;
+      color: #1a1a1a; transition: all .15s;
+    }
+    .act-btn.primary { background: #1D9E75; border-color: #1D9E75; color: #E1F5EE; }
+    .act-btn:active { transform: scale(.97); }
+
+    .new-course {
+      border: 0.5px solid #e8e6e0; border-radius: 12px;
+      padding: 12px; margin-top: 4px; cursor: pointer; transition: all .15s;
+    }
+    .new-course:hover { border-color: #d0cec8; background: #f5f5f0; }
+    .course-name { font-size: 13px; font-weight: 500; color: #1a1a1a; margin-bottom: 3px; }
+    .course-meta { font-size: 11px; color: #888; }
+    .course-cafes { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+    .course-cafe-tag {
+      font-size: 10px; padding: 2px 7px; border-radius: 20px;
+      background: #E1F5EE; color: #085041; border: 0.5px solid #9FE1CB;
+    }
+  </style>
+</head>
+<body>
+<div class="outer">
+  <div class="phone">
+    <div class="sb">
+      <span>9:41</span><span>RUN:BREW</span><span>●●●</span>
+    </div>
+    <div class="scr">
+
+      <div class="context-bar">
+        <div class="ctx-left">
+          <strong>러닝 후 · 성수동 코스</strong>
+          7.2km 완료 · 지금 주변
+        </div>
+        <div class="ctx-badge">회복 모드</div>
+      </div>
+
+      <div class="filter-row">
+        <div class="chip on" onclick="toggleChip(this)">전체</div>
+        <div class="chip" onclick="toggleChip(this)">러너 오너</div>
+        <div class="chip" onclick="toggleChip(this)">코스 경유</div>
+        <div class="chip" onclick="toggleChip(this)">땀 OK</div>
+        <div class="chip" onclick="toggleChip(this)">회복 메뉴</div>
+      </div>
+
+      <div class="section-label">코스 주변 카페 3곳</div>
+
+      <div class="cafe-card" id="card0" onclick="toggleCard(0)">
+        <div class="card-top">
+          <div>
+            <div class="cafe-name">브루어리 성수</div>
+            <div class="cafe-dist">320m · 도보 4분</div>
+          </div>
+          <div class="badge-wrap">
+            <div class="runner-badge">러너 오너</div>
+            <div class="course-badge">코스 경유</div>
+          </div>
+        </div>
+        <div class="tags">
+          <span class="tag">땀 입장 OK</span>
+          <span class="tag">물 무료 제공</span>
+          <span class="tag">디카프 있음</span>
+          <span class="tag">야외 테이블</span>
+        </div>
+        <div class="detail" id="detail0">
+          <div class="detail-row"><span class="dl">오늘 추천 메뉴</span><span class="dr">콜드브루 디카프</span></div>
+          <div class="detail-row"><span class="dl">이유</span><span class="dr">회복형 · 저카페인</span></div>
+          <div class="detail-row"><span class="dl">가격</span><span class="dr">6,500원</span></div>
+          <div class="detail-row"><span class="dl">러너 리뷰</span><span class="dr">★ 4.8 (러너 62명)</span></div>
+          <div class="owner-note">
+            <strong>오너 한마디</strong> — "저도 매주 이 코스 뛰어요. 러닝 끝나고 오시는 분들 위해 물 항상 준비해뒀어요."
+          </div>
+          <div class="action-row">
+            <button class="act-btn" onclick="event.stopPropagation();alert('코스에 추가됐어요!')">코스에 추가</button>
+            <button class="act-btn primary" onclick="event.stopPropagation();alert('지도로 이동합니다.')">바로 가기 →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cafe-card" id="card1" onclick="toggleCard(1)">
+        <div class="card-top">
+          <div>
+            <div class="cafe-name">센터커피</div>
+            <div class="cafe-dist">580m · 도보 7분</div>
+          </div>
+          <div class="badge-wrap">
+            <div class="course-badge">회복 메뉴</div>
+          </div>
+        </div>
+        <div class="tags">
+          <span class="tag">오트밀크 있음</span>
+          <span class="tag">넓은 좌석</span>
+          <span class="tag">저카페인 메뉴</span>
+        </div>
+        <div class="detail" id="detail1">
+          <div class="detail-row"><span class="dl">오늘 추천 메뉴</span><span class="dr">오트라떼 하프카프</span></div>
+          <div class="detail-row"><span class="dl">이유</span><span class="dr">단백질 회복 · 완만한 카페인</span></div>
+          <div class="detail-row"><span class="dl">가격</span><span class="dr">7,000원</span></div>
+          <div class="detail-row"><span class="dl">러너 리뷰</span><span class="dr">★ 4.5 (러너 31명)</span></div>
+          <div class="owner-note">
+            <strong>RUN:BREW 추천 이유</strong> — 오트밀크의 탄수화물이 글리코겐 회복을 도와요. 7km 이상 러닝 후 최적이에요.
+          </div>
+          <div class="action-row">
+            <button class="act-btn" onclick="event.stopPropagation();alert('코스에 추가됐어요!')">코스에 추가</button>
+            <button class="act-btn primary" onclick="event.stopPropagation();alert('지도로 이동합니다.')">바로 가기 →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cafe-card" id="card2" onclick="toggleCard(2)">
+        <div class="card-top">
+          <div>
+            <div class="cafe-name">어니언 성수</div>
+            <div class="cafe-dist">920m · 도보 11분</div>
+          </div>
+          <div class="badge-wrap">
+            <div class="runner-badge">러너 오너</div>
+          </div>
+        </div>
+        <div class="tags">
+          <span class="tag">스페셜티</span>
+          <span class="tag">원두 구매 가능</span>
+          <span class="tag">쿨다운 코스 근처</span>
+        </div>
+        <div class="detail" id="detail2">
+          <div class="detail-row"><span class="dl">오늘 추천 메뉴</span><span class="dr">에티오피아 드립</span></div>
+          <div class="detail-row"><span class="dl">이유</span><span class="dr">클로로겐산 높음 · 항산화</span></div>
+          <div class="detail-row"><span class="dl">가격</span><span class="dr">8,000원</span></div>
+          <div class="detail-row"><span class="dl">러너 리뷰</span><span class="dr">★ 4.7 (러너 48명)</span></div>
+          <div class="owner-note">
+            <strong>오너 한마디</strong> — "마라톤 서브4 목표로 훈련 중이에요. 원두 직접 고르는 거 도와드릴 수 있어요."
+          </div>
+          <div class="action-row">
+            <button class="act-btn" onclick="event.stopPropagation();alert('코스에 추가됐어요!')">코스에 추가</button>
+            <button class="act-btn primary" onclick="event.stopPropagation();alert('지도로 이동합니다.')">바로 가기 →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px">이 코스 추천 루트</div>
+      <div class="new-course" onclick="alert('코스 상세 페이지로 이동합니다.')">
+        <div class="course-name">성수 카페런 5km</div>
+        <div class="course-meta">브루어리 성수 경유 · 러너 124명 완주</div>
+        <div class="course-cafes">
+          <span class="course-cafe-tag">브루어리 성수</span>
+          <span class="course-cafe-tag">어니언 성수</span>
+          <span class="course-cafe-tag">+1</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  let expanded = null;
+
+  function toggleCard(i) {
+    const d = document.getElementById('detail' + i);
+    const c = document.getElementById('card' + i);
+    if (expanded === i) {
+      d.classList.remove('open');
+      c.classList.remove('expanded');
+      expanded = null;
+    } else {
+      if (expanded !== null) {
+        document.getElementById('detail' + expanded).classList.remove('open');
+        document.getElementById('card' + expanded).classList.remove('expanded');
+      }
+      d.classList.add('open');
+      c.classList.add('expanded');
+      expanded = i;
+    }
+  }
+
+  function toggleChip(el) {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+    el.classList.add('on');
+  }
+</script>
+</body>
+</html>
